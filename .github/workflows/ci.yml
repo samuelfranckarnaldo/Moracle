@@ -1,0 +1,20 @@
+name: testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      # O Moracle nao tem dependencias de execucao (so biblioteca padrao).
+      # O pytest e so para os testes.
+      - run: python -m pip install pytest
+      - run: python -m pytest -q

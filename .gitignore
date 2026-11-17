@@ -1,0 +1,49 @@
+# Estado e segredos locais: NUNCA versionar
+.state/
+.tmp/
+config.json
+*.key
+*.pem
+api_key.txt
+ioc_cache.json
+ioc_cache.json.lock
+*.lock
+audit.log
+security_events.jsonl
+fila_eventos.jsonl
+
+# Saidas geradas
+relatorio_forense.md
+supabase_events.json
+saida/
+output/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Editor / sistema
+.idea/
+.vscode/
+.DS_Store
+config.json
+.tmp/
+.tmp_*
+*.bak
+*.pre-pacote*
+saida/
+config.json
+*.custodia.json
+whitelist.json
+experiments/
+alertas_completos.txt
+feed_teste.txt
+test.log
+teste.md
+teste_sintetico.log

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<title>Moracle Console</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #0d1117; color: #e6edf3; margin: 0; padding: 24px; }
+  h1 { font-size: 20px; }
+  .barra-chave { margin-bottom: 20px; }
+  input { background: #161b22; color: #e6edf3; border: 1px solid #30363d; padding: 6px 10px; border-radius: 6px; }
+  button { background: #238636; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; margin-left: 6px; }
+  button.secundario { background: #30363d; }
+  button.perigo { background: #da3633; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #21262d; font-size: 14px; }
+  .tag { padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+  .tag-healthy { background: #1a7f37; }
+  .tag-crashed, .tag-failed { background: #da3633; }
+  .tag-outro { background: #6e7681; }
+  #detalhe { margin-top: 24px; padding: 16px; background: #161b22; border-radius: 8px; display: none; }
+  pre { background: #0d1117; padding: 10px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; }
+  .erro { color: #f85149; margin-top: 10px; }
+</style>
+</head>
+<body>
+  <h1>Moracle Console</h1>
+  <div class="barra-chave">
+    Admin API key: <input id="chave" type="password" placeholder="Bearer token">
+    <button onclick="salvarChave()">Conectar</button>
+  </div>
+  <div id="erro" class="erro"></div>
+
+  <button onclick="carregarApps()">Atualizar</button>
+  <table id="tabela-apps">
+    <thead><tr><th>Nome</th><th>Domínio</th><th>Deployment atual</th><th>Estado</th><th>Ações</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="detalhe"></div>
+
+<script>
+function chaveAtual() { return localStorage.getItem("moracle_admin_key") || ""; }
+function salvarChave() {
+  localStorage.setItem("moracle_admin_key", document.getElementById("chave").value);
+  carregarApps();
+}
+
+async function chamarAPI(metodo, path, corpo) {
+  const resp = await fetch(path, {
+    method: metodo,
+    headers: { "Authorization": `Bearer ${chaveAtual()}`, "Content-Type": "application/json" },
+    body: corpo ? JSON.stringify(corpo) : undefined,
+  });
+  const dados = resp.status !== 204 ? await resp.json().catch(() => ({})) : {};
+  if (!resp.ok) throw new Error(dados.error || `HTTP ${resp.status}`);
+  return dados;
+}
+
+function tagEstado(estado) {
+  const classe = estado === "HEALTHY" ? "tag-healthy"
+    : (estado === "CRASHED" || estado === "FAILED") ? "tag-crashed" : "tag-outro";
+  return `<span class="tag ${classe}">${estado || "-"}</span>`;
+}
+
+async function carregarApps() {
+  document.getElementById("erro").textContent = "";
+  try {
+    const { applications } = await chamarAPI("GET", "/admin/apps");
+    const corpo = document.querySelector("#tabela-apps tbody");
+    corpo.innerHTML = "";
+    for (const app of applications) {
+      let status = {};
+      try { status = await chamarAPI("GET", `/admin/apps/${app.name}/status`); } catch (e) {}
+      const linha = document.createElement("tr");
+      linha.innerHTML = `
+        <td><a href="#" onclick="verDetalhe('${app.name}');return false;">${app.name}</a></td>
+        <td>${app.domain || "-"}</td>
+        <td>${app.current_deployment_id || "-"}</td>
+        <td>${tagEstado(status.lifecycle_state)}</td>
+        <td>
+          <button onclick="acao('${app.name}','deploy')">Deploy</button>
+          <button class="secundario" onclick="acao('${app.name}','stop')">Stop</button>
+          <button class="perigo" onclick="acao('${app.name}','delete')">Delete</button>
+        </td>`;
+      corpo.appendChild(linha);
+    }
+  } catch (e) {
+    document.getElementById("erro").textContent = e.message;
+  }
+}
+
+async function acao(nome, tipo) {
+  try {
+    if (tipo === "deploy") await chamarAPI("POST", `/admin/apps/${nome}/deploy`);
+    if (tipo === "stop") await chamarAPI("POST", `/admin/apps/${nome}/stop`);
+    if (tipo === "delete") await chamarAPI("DELETE", `/admin/apps/${nome}`);
+    carregarApps();
+  } catch (e) {
+    document.getElementById("erro").textContent = e.message;
+  }
+}
+
+async function verDetalhe(nome) {
+  const div = document.getElementById("detalhe");
+  div.style.display = "block";
+  try {
+    const app = await chamarAPI("GET", `/admin/apps/${nome}`);
+    const logs = await chamarAPI("GET", `/admin/apps/${nome}/logs?lines=50`);
+    div.innerHTML = `
+      <h2>${nome}</h2>
+      <p>working_directory: ${app.working_directory}</p>
+      <p>start_command: ${JSON.stringify(app.start_command)}</p>
+      <p>port: ${app.port || "-"}</p>
+      <h3>stdout</h3><pre>${(logs.stdout || "(vazio)")}</pre>
+      <h3>stderr</h3><pre>${(logs.stderr || "(vazio)")}</pre>`;
+  } catch (e) {
+    div.innerHTML = `<p class="erro">${e.message}</p>`;
+  }
+}
+
+document.getElementById("chave").value = chaveAtual();
+if (chaveAtual()) carregarApps();
+</script>
+</body>
+</html>
