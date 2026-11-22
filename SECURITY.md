@@ -2,9 +2,9 @@
 
 ## Reportar uma vulnerabilidade
 
-**Nao abra uma issue publica.** Envie os detalhes em privado para
-`[CONTACTO DE SEGURANCA - preencher antes de publicar]` (ou use "Report a
-vulnerability" no separador Security do repositorio, se estiver ativo).
+**Nao abra uma issue publica.** Use "Report a vulnerability" no separador
+Security do repositorio (https://github.com/samuelfranckarnaldo/Moracle/security/advisories/new),
+que mantem o relatorio privado ate haver correcao.
 Indique a versao, os passos para reproduzir e o impacto.
 
 ## O que o Moracle garante
